@@ -50,6 +50,7 @@ const StatsCard = ({
                     </div>
                 </div>
 
+                {/* include real graph*/}
                 <img
                     src={`/assets/icons/${
                         isDecrement ? "decrement.svg" : "increment.svg"
