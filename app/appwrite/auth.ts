@@ -23,6 +23,9 @@ export const storeUserData = async () => {
         const user = await account.get();
         if (!user) throw new Error("User not found");
 
+        const existingUser = await getExistingUser(user.$id);
+        if (existingUser) return;
+
         const { providerAccessToken } =
             (await account.getSession("current")) || {};
         const profilePicture = providerAccessToken
