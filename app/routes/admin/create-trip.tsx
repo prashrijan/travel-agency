@@ -2,7 +2,7 @@ import { ComboBoxComponent } from "@syncfusion/ej2-react-dropdowns";
 import { Header } from "components";
 import React, { useState } from "react";
 import type { Route } from "./+types/create-trip";
-import { comboBoxItems, selectItems } from "~/constants";
+import { comboBoxItems, selectItems, travelStyles } from "~/constants";
 import { cn, formatKey } from "lib/utils";
 import {
     LayerDirective,
@@ -11,7 +11,7 @@ import {
 } from "@syncfusion/ej2-react-maps";
 import { world_map } from "~/constants/world_map";
 import { ButtonComponent } from "@syncfusion/ej2-react-buttons";
-import type { HTMLFormMethod } from "react-router";
+import { useNavigate, type HTMLFormMethod } from "react-router";
 import { account } from "~/appwrite/client";
 
 export const loader = async () => {
@@ -41,6 +41,7 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
 
     const [error, setError] = useState<string | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
+    const navigate = useNavigate();
 
     const countryData = countries.map((country) => ({
         text: country.name,
@@ -101,8 +102,30 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
 
         try {
             setError("");
-            console.log("User: ", user);
-            console.log("formData: ", formData);
+            const response = await fetch("/api/create-trip", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    country: formData.country,
+                    numberOfDays: formData.duration,
+                    travelStyle: formData.travelStyle,
+
+                    interests: formData.interest,
+                    budget: formData.budget,
+                    groupType: formData.groupType,
+                    userId: user.$id,
+                }),
+            });
+
+            const result: CreateTripResponse = await response.json();
+
+            console.log(result);
+
+            if (result?.id) {
+                navigate(`/trips/${result.id}`);
+            } else {
+                console.error("Failed to generate a trip.");
+            }
         } catch (error) {
             console.error("Error generating trip: ", error);
         } finally {
@@ -247,7 +270,9 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                                     })}
                                 />
                                 <span className="p-16-semibold text-white">
-                                    {loading ? "Generating" : "Generate a trip"}
+                                    {loading
+                                        ? "Generating..."
+                                        : "Generate a trip"}
                                 </span>
                             </ButtonComponent>
                         </footer>
