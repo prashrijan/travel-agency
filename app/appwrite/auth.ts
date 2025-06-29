@@ -2,6 +2,8 @@ import { ID, OAuthProvider, Query } from "appwrite";
 import { account, database, appwriteConfig } from "~/appwrite/client";
 import { redirect } from "react-router";
 
+console.log(appwriteConfig);
+
 export const getExistingUser = async (id: string) => {
     try {
         const { documents, total } = await database.listDocuments(
@@ -86,7 +88,7 @@ export const logoutUser = async () => {
 export const getUser = async () => {
     try {
         const user = await account.get();
-        console.log(user);
+
         if (!user) return redirect("/sign-in");
 
         const { documents } = await database.listDocuments(
