@@ -57,12 +57,12 @@ const AllUsers = ({ loaderData }: Route.ComponentProps) => {
                             formatDate(joinedAt)
                         }
                     />
-                    {/* <ColumnDirective
+                    <ColumnDirective
                         field="itineraryCreated"
                         headerText="Trip Created"
                         width="130"
                         textAlign="Left"
-                    /> */}
+                    />
                     <ColumnDirective
                         field="status"
                         headerText="Type"
