@@ -1,18 +1,19 @@
+import { Header } from "../../../components";
 import { ComboBoxComponent } from "@syncfusion/ej2-react-dropdowns";
-import { Header } from "components";
-import React, { useState } from "react";
 import type { Route } from "./+types/create-trip";
-import { comboBoxItems, selectItems, travelStyles } from "~/constants";
-import { cn, formatKey } from "lib/utils";
+import { comboBoxItems, selectItems } from "~/constants";
+
 import {
     LayerDirective,
     LayersDirective,
     MapsComponent,
 } from "@syncfusion/ej2-react-maps";
+import React, { useState } from "react";
 import { world_map } from "~/constants/world_map";
 import { ButtonComponent } from "@syncfusion/ej2-react-buttons";
-import { useNavigate, type HTMLFormMethod } from "react-router";
 import { account } from "~/appwrite/client";
+import { useNavigate } from "react-router";
+import { cn, formatKey } from "lib/utils";
 
 export const loader = async () => {
     const repsonse = await fetch(
@@ -30,6 +31,8 @@ export const loader = async () => {
 
 const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
     const countries = loaderData as Country[];
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState<TripFormData>({
         country: countries[0]?.name || "",
         travelStyle: "",
@@ -38,50 +41,21 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
         duration: 0,
         groupType: "",
     });
-
     const [error, setError] = useState<string | null>(null);
-    const [loading, setLoading] = useState<boolean>(false);
-    const navigate = useNavigate();
+    const [loading, setLoading] = useState(false);
 
-    const countryData = countries.map((country) => ({
-        text: country.name,
-        value: country.value,
-    }));
-
-    const mapData = [
-        {
-            country: formData.country,
-            color: "#ea382e",
-            coordinates:
-                countries.find(
-                    (country: Country) => country.name === formData.country
-                )?.coordinates || [],
-        },
-    ];
-
-    const handleChange = (
-        key: keyof TripFormData,
-        value: string | number | undefined
-    ) => {
-        setFormData({
-            ...formData,
-            [key]: value,
-        });
-    };
-    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
         setLoading(true);
 
         if (
             !formData.country ||
-            !formData.budget ||
-            !formData.duration ||
-            !formData.groupType ||
+            !formData.travelStyle ||
             !formData.interest ||
-            !formData.travelStyle
+            !formData.budget ||
+            !formData.groupType
         ) {
-            setError("Please enter all the fields.");
+            setError("Please provide values for all fields");
             setLoading(false);
             return;
         }
@@ -91,9 +65,7 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
             setLoading(false);
             return;
         }
-
         const user = await account.get();
-
         if (!user.$id) {
             console.error("User not authenticated");
             setLoading(false);
@@ -101,7 +73,6 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
         }
 
         try {
-            setError("");
             const response = await fetch("/api/create-trip", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -109,7 +80,6 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                     country: formData.country,
                     numberOfDays: formData.duration,
                     travelStyle: formData.travelStyle,
-
                     interests: formData.interest,
                     budget: formData.budget,
                     groupType: formData.groupType,
@@ -119,24 +89,38 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
 
             const result: CreateTripResponse = await response.json();
 
-            console.log(result);
-
-            if (result?.id) {
-                navigate(`/trips/${result.id}`);
-            } else {
-                console.error("Failed to generate a trip.");
-            }
-        } catch (error) {
-            console.error("Error generating trip: ", error);
+            if (result?.id) navigate(`/trips/${result.id}`);
+            else console.error("Failed to generate a trip");
+        } catch (e) {
+            console.error("Error generating trip", e);
         } finally {
             setLoading(false);
         }
     };
+
+    const handleChange = (key: keyof TripFormData, value: string | number) => {
+        setFormData({ ...formData, [key]: value });
+    };
+    const countryData = countries.map((country) => ({
+        text: country.name,
+        value: country.value,
+    }));
+
+    const mapData = [
+        {
+            country: formData.country,
+            color: "#EA382E",
+            coordinates:
+                countries.find((c: Country) => c.name === formData.country)
+                    ?.coordinates || [],
+        },
+    ];
+
     return (
         <main className="flex flex-col gap-10 pb-20 wrapper">
             <Header
                 title="Add a New Trip"
-                description="View and edit AI-generated travel plans"
+                description="View and edit AI Generated travel plans"
             />
 
             <section className="mt-2.5 wrapper-md">
@@ -179,7 +163,8 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                         <input
                             id="duration"
                             name="duration"
-                            placeholder="Enter number of days (1 - 10)"
+                            type="number"
+                            placeholder="Enter a number of days"
                             className="form-input placeholder:text-gray-100"
                             onChange={(e) =>
                                 handleChange("duration", Number(e.target.value))
@@ -197,7 +182,6 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                                     text: item,
                                     value: item,
                                 }))}
-                                className="combo-box"
                                 fields={{ text: "text", value: "value" }}
                                 placeholder={`Select ${formatKey(key)}`}
                                 change={(e: { value: string | undefined }) => {
@@ -222,65 +206,60 @@ const CreateTrip = ({ loaderData }: Route.ComponentProps) => {
                                             }))
                                     );
                                 }}
+                                className="combo-box"
                             />
                         </div>
                     ))}
 
                     <div>
-                        <label htmlFor="location">Location on the map</label>
-
+                        <label htmlFor="location">
+                            Location on the world map
+                        </label>
                         <MapsComponent>
                             <LayersDirective>
                                 <LayerDirective
-                                    dataSource={mapData}
                                     shapeData={world_map}
-                                    shapeDataPath="country"
+                                    dataSource={mapData}
                                     shapePropertyPath="name"
+                                    shapeDataPath="country"
                                     shapeSettings={{
                                         colorValuePath: "color",
-                                        fill: "#e5e5e5",
+                                        fill: "#E5E5E5",
                                     }}
                                 />
                             </LayersDirective>
                         </MapsComponent>
                     </div>
 
-                    <div className="bg-gray-200 h-px w-full">
-                        {error && (
-                            <div className="error">
-                                <p>{error}</p>
-                            </div>
-                        )}
+                    <div className="bg-gray-200 h-px w-full" />
 
-                        <footer className="px-6 w-full">
-                            <ButtonComponent
-                                type="submit"
-                                className="button-class !h-12 !w-full"
-                                disabled={loading}
-                            >
-                                <img
-                                    src={`/assets/icons/${
-                                        loading
-                                            ? "loader.svg"
-                                            : "magic-star.svg"
-                                    }`}
-                                    alt=""
-                                    className={cn("size-5", {
-                                        "animate-spin": loading,
-                                    })}
-                                />
-                                <span className="p-16-semibold text-white">
-                                    {loading
-                                        ? "Generating..."
-                                        : "Generate a trip"}
-                                </span>
-                            </ButtonComponent>
-                        </footer>
-                    </div>
+                    {error && (
+                        <div className="error">
+                            <p>{error}</p>
+                        </div>
+                    )}
+                    <footer className="px-6 w-full">
+                        <ButtonComponent
+                            type="submit"
+                            className="button-class !h-12 !w-full"
+                            disabled={loading}
+                        >
+                            <img
+                                src={`/assets/icons/${
+                                    loading ? "loader.svg" : "magic-star.svg"
+                                }`}
+                                className={cn("size-5", {
+                                    "animate-spin": loading,
+                                })}
+                            />
+                            <span className="p-16-semibold text-white">
+                                {loading ? "Generating..." : "Generate Trip"}
+                            </span>
+                        </ButtonComponent>
+                    </footer>
                 </form>
             </section>
         </main>
     );
 };
-
 export default CreateTrip;
